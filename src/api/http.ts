@@ -1,15 +1,15 @@
 /**
  * @file http.ts
- * @description 全局 Axios 实例，严格对齐《前端联调文档》通用约定（§0）。
+ * @description 全局 Axios 实例，严格对齐 API(2).md 的统一响应体约定。
  *
  *              · 统一响应体 { code, msg, data }：code === 0 成功，否则失败；
- *                **成功判定只看 code，不依赖 msg**（§0.2）；
+ *                **成功判定只看 code，不依赖 msg**；
  *              · 请求头自动携带 Authorization: Bearer <accessToken>，
- *                并生成 X-Request-ID（§0.1，服务端日志按该 ID 串联）；
- *              · HTTP 401 → 触发 Token 刷新流程（§0.5）：互斥、只重放一次、
+ *                并生成 X-Request-ID（服务端日志按该 ID 串联）；
+ *              · HTTP 401 → 触发 Token 刷新流程：互斥、只重放一次、
  *                失败则清空凭证并跳登录页；
- *              · 404 统一提示"资源不存在或已删除"，**绝不提示"无权限"**（§0.4）；
- *              · 二进制流（下载 / PDF 预览）不做 JSON 判定，直接返回 Blob（§6.4）。
+ *              · 404 统一提示"资源不存在或已删除"，**绝不提示"无权限"**；
+ *              · 二进制流（下载 / PDF 预览）不做 JSON 判定，直接返回 Blob。
  *
  *              本模块不反向依赖 store / router，二者通过 bindAuth 与
  *              setUnauthorizedHandler 注入，避免循环依赖。
@@ -22,7 +22,7 @@ import axios, {
 
 import type { TokenPair } from '@/types/user'
 
-/** 后端统一响应体结构（§0.2）：错误信息字段为 msg */
+/** 后端统一响应体结构：错误信息字段为 msg */
 export interface ApiResponse<T = unknown> {
   code: number
   msg?: string
@@ -32,9 +32,9 @@ export interface ApiResponse<T = unknown> {
 /** 为 axios 配置附加自定义字段（重放标记、请求追踪 ID） */
 declare module 'axios' {
   export interface InternalAxiosRequestConfig<D = unknown> {
-    /** 已重放过一次，防止无限循环（§0.5 要点 2） */
+    /** 已重放过一次，防止无限循环 */
     _retried?: boolean
-    /** 本次请求的追踪 ID，回显在错误提示中（§6.3） */
+    /** 本次请求的追踪 ID，回显在错误提示中 */
     requestId?: string
     /** 认证类接口标记：不参与 401 刷新重放，避免自刷新死循环 */
     _skipAuthRefresh?: boolean
@@ -74,7 +74,7 @@ const rawHttp: AxiosInstance = axios.create({
   timeout: 15000,
 })
 
-/** 生成符合 §0.1 约束（8-64 位、A-Za-z0-9_.:-）的请求追踪 ID */
+/** 生成（8-64 位、A-Za-z0-9_.:-）的请求追踪 ID */
 function genRequestId(): string {
   try {
     return crypto.randomUUID()
@@ -109,7 +109,7 @@ function composeErrorMessage(error: AxiosError<ApiResponse>): string {
     base = error.message || '网络异常，请稍后重试'
   }
 
-  // §0.4：404 一律不提示"无权限"，避免泄露资源真实存在
+  // 404 一律不提示"无权限"，避免泄露资源真实存在
   if (status === 404 && base.includes('权限')) {
     base = '资源不存在或已删除'
   }
@@ -118,7 +118,7 @@ function composeErrorMessage(error: AxiosError<ApiResponse>): string {
   return rid ? `${base}（请求 ID：${rid}）` : base
 }
 
-/** 刷新互斥：并发 401 只允许一个真正刷新，其余复用同一 Promise（§0.5 要点 1） */
+/** 刷新互斥：并发 401 只允许一个真正刷新，其余复用同一 Promise（要点 1） */
 let refreshPromise: Promise<TokenPair> | null = null
 
 /** 执行刷新：成功后写入本地双 Token 并返回新 TokenPair */
@@ -128,7 +128,7 @@ function performRefresh(refreshToken: string): Promise<TokenPair> {
       .post<ApiResponse<TokenPair>>('/user/refresh', { refreshToken })
       .then((res) => {
         const body = res.data
-        // 刷新失败在业务上以 code = 401 返回（§0.5）
+        // 刷新失败在业务上以 code = 401 返回（刷新流程要点 3）
         if (body.code !== 0 || !body.data) {
           throw new Error(body.msg || '登录已过期，请重新登录')
         }
@@ -147,7 +147,7 @@ const AUTH_PATH = /\/user\/(login|refresh|register|reset-password|verify)/
 
 http.interceptors.response.use(
   (response) => {
-    // 二进制流（下载 / 图片预览）不做 JSON 解包（§6.4）
+    // 二进制流（下载 / 图片预览）不做 JSON 解包，直接返回 Blob
     if (response.config.responseType === 'blob') {
       return response.data
     }
@@ -156,7 +156,7 @@ http.interceptors.response.use(
       if (body.code === 0) {
         return body
       }
-      // 业务失败（HTTP 多为 200）：code !== 0，展示后端 msg（§0.2）
+      // 业务失败（HTTP 多为 200）：code !== 0，展示后端 msg
       const rid = response.config.requestId
       const msg = body.msg || '请求失败'
       return Promise.reject(new Error(rid ? `${msg}（请求 ID：${rid}）` : msg))
@@ -168,7 +168,7 @@ http.interceptors.response.use(
     const status = error.response?.status
     const url = config?.url ?? ''
 
-    // HTTP 401 → 刷新流程（§0.5）；认证类接口显式标记跳过，避免自刷新死循环
+    // HTTP 401 → 刷新流程；认证类接口显式标记跳过，避免自刷新死循环
     if (
       status === 401 &&
       config &&
@@ -180,7 +180,7 @@ http.interceptors.response.use(
       if (refreshToken) {
         try {
           const tokens = await performRefresh(refreshToken)
-          // 只重放一次（§0.5 要点 2）
+          // 只重放一次（要点 2）
           config._retried = true
           config.headers.Authorization = `Bearer ${tokens.accessToken}`
           return http.request(config)

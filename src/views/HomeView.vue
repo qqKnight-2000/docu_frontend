@@ -1,8 +1,8 @@
 <script setup lang="ts">
 /**
  * @file 首页（登录成功后的占位页）
- * @description Step 0 占位壳：仅保证路由可达。当前仅放置「修改密码」入口供 P4 联调，
- *              Step 11 联调时统一打磨。
+ * @description 占位首页：仅保证路由可达，右上角放置「修改密码」「退出登录」入口，
+ *              后续随文件/任务模块开发统一打磨。
  */
 import { useRouter } from 'vue-router'
 
@@ -35,7 +35,7 @@ async function handleLogout(): Promise<void> {
 .home-page {
   min-height: 100vh;
 
-  // 占位导航：右上角一行入口（后续 Step 11 统一打磨替换）
+  // 占位导航：右上角一行入口（后续随业务模块开发统一打磨替换）
   &__nav {
     position: fixed;
     top: 24px;

@@ -5,13 +5,14 @@
  *              由默认插槽提供。布局内固定包含：
  *
  *                1) decor-stage：1280×800 设计舞台，cover 等比缩放居中，
- *                   内含右下三张 -22° 线稿纸（数据与几何来自 useAuthStage）；
- *                2) 英文角标：左上 Welcome（左边距 = edgeGap）、右上业务角标
- *                   （文案由 rightCornerText 传入，右边距 = edgeGap），另渲染一个
- *                   隐藏的「Log In」基准元素量取与登录页完全一致的边距；
- *                3) form-frame：视口水平居中、内容中心置于 42.3vh，内部 305×503
- *                   设计稿画布按框宽等比缩放；画布顶部固定为品牌区 BrandTitle，
- *                   其下为页面插槽。
+ *                   内含右下三张倾斜线稿纸（数据与几何来自 useAuthStage）；
+ *                2) 顶栏三元素：左上品牌印记（内联 SVG）/ 右上 Welcome，
+ *                   与画布内「文枢」构成一条墨迹带——三者墨迹顶边、底边分别
+ *                   水平对齐（以文枢墨迹为标准，几何系数见 useAuthStage 常量
+ *                   注释），任意窗口尺寸恒成立，小屏回退 42.3vh 居中；
+ *                3) form-frame：视口水平居中；宽度表达式由脚本注入（--frame-w，
+ *                   与墨迹带各 calc 同源）；内部 305×503 设计稿画布按框宽
+ *                   等比缩放；画布顶部固定为品牌区 BrandTitle，其下为页面插槽。
  *
  *              插槽元素可用的定位 / 文案类（样式由本组件 :slotted 统一提供，
  *              视图层不再写任何 CSS）：
@@ -25,25 +26,51 @@ import BrandTitle from '@/components/login/BrandTitle.vue'
 import PaperDoc from '@/components/illustration/PaperDoc.vue'
 import {
   AUTH_SHEETS,
+  BRAND_INK_HEIGHT_FACTOR,
+  BRAND_INK_TOP_FACTOR,
   CORNER_ANCHOR_VW,
+  CORNER_MARK_OFFSET_X,
+  CORNER_MARK_OFFSET_Y,
+  CORNER_MARK_SCALE,
+  CORNER_RIGHT_GAP,
+  CORNER_TOP_VH,
   FORM_DESIGN_HEIGHT,
   FORM_DESIGN_WIDTH,
+  FRAME_W_CSS,
   SHEET_ROTATE,
   SHEET_WIDTH,
   STAGE_HEIGHT,
   STAGE_WIDTH,
   useAuthStage,
+  WELCOME_BOX_TOP_FACTOR,
+  WELCOME_FONT_FACTOR,
 } from '@/composables/useAuthStage'
 
-/**
- * 右角标文案（随页面语义变化：Log In / Sign Up / Reset / Settings）；
- * 左角标固定为 Welcome
- */
-defineProps<{
-  rightCornerText: string
-}>()
+const { stageScale, formScale, formFrameEl } = useAuthStage()
 
-const { stageScale, formScale, formFrameEl, cornerProbeEl, edgeGap } = useAuthStage()
+/**
+ * 顶栏墨迹带（以文枢墨迹为标准，三元素顶底对齐）。各顶边均为
+ * 「锚点(1.375vh + 3.086vw) + 系数 × FrameW」的 calc 表达式，系数来自
+ * useAuthStage 中实测的字体墨迹数据：
+ *   · 表单锚点：画布中心 = 锚点 + 224.5/305·FrameW（224.5 = 半画布 251.5
+ *     − 品牌名顶 34 + 光学修正 7），使文枢墨迹带顶边 = 锚点 + 12.18/305·FrameW；
+ *   · 印记顶边 = 墨迹带顶边（+ CORNER_MARK_OFFSET_Y 手动微调），
+ *     印记高度 = 墨迹带高 × CORNER_MARK_SCALE（顶边锚定墨迹带顶，向下放大）；
+ *   · Welcome 盒顶 = 墨迹带顶 − 盒内偏移，字号使其墨迹高 = 墨迹带高。
+ */
+const formAnchor = `calc(${CORNER_TOP_VH}vh + ${CORNER_ANCHOR_VW}vw + ${(224.5 / 305).toFixed(6)} * ${FRAME_W_CSS})`
+
+/** 左上印记顶边 = 文枢墨迹带顶边 + 手动微调 */
+const markTop = `calc(${CORNER_TOP_VH}vh + ${CORNER_ANCHOR_VW}vw + ${BRAND_INK_TOP_FACTOR.toFixed(6)} * ${FRAME_W_CSS} + ${CORNER_MARK_OFFSET_Y}px)`
+
+/** 印记高度 = 文枢墨迹带高 × CORNER_MARK_SCALE（顶边仍锚定墨迹带顶，向下放大） */
+const markHeight = `calc(${(BRAND_INK_HEIGHT_FACTOR * CORNER_MARK_SCALE).toFixed(6)} * ${FRAME_W_CSS})`
+
+/** Welcome 盒顶 = 文枢墨迹带顶边 − 盒内墨迹偏移（0.1275em，系数已烘焙） */
+const welcomeTop = `calc(${CORNER_TOP_VH}vh + ${CORNER_ANCHOR_VW}vw + ${WELCOME_BOX_TOP_FACTOR.toFixed(6)} * ${FRAME_W_CSS})`
+
+/** Welcome 字号 = 文枢墨迹带高 ÷ 0.820（Welcome 每em墨迹高） */
+const welcomeFontSize = `calc(${WELCOME_FONT_FACTOR.toFixed(6)} * ${FRAME_W_CSS})`
 </script>
 
 <template>
@@ -77,28 +104,62 @@ const { stageScale, formScale, formFrameEl, cornerProbeEl, edgeGap } = useAuthSt
       </div>
     </div>
 
-    <!-- 英文角标：左 Welcome / 右业务文案，两侧边距都等于登录页基准边距。
-         中间隐藏的「Log In」基准元素只用于量距，不可见、不参与交互。 -->
+    <!-- 左上角品牌印记：剑穿 DD 字母组合（Documenter monogram，矢量复刻自设计稿）。
+         左边距 = CORNER_RIGHT_GAP + OFFSET_X（与右上 Welcome 左右对称，可微移），
+         顶边 = 文枢墨迹带顶边（+ OFFSET_Y 微调），高度 = 墨迹带高 × CORNER_MARK_SCALE。 -->
+    <svg
+      class="auth-page__corner-mark"
+      viewBox="0 0 167 322"
+      :style="{
+        left: `${CORNER_RIGHT_GAP + CORNER_MARK_OFFSET_X}px`,
+        top: markTop,
+        height: markHeight,
+      }"
+      aria-hidden="true"
+    >
+      <g fill="currentColor">
+        <!-- 剑首（顶部横杆）与剑柄轴（短柄） -->
+        <rect x="66" y="0" width="32" height="14" />
+        <rect x="74" y="14" width="16" height="28" />
+        <!-- 护手（宽横杆） -->
+        <rect x="38" y="42" width="88" height="20" />
+        <!-- 剑身：自护手向下穿行于两个字根之间，直达箭镞 -->
+        <rect x="74" y="62" width="16" height="218" />
+        <!-- 左字根：方形括号（上横 / 左竖 / 下横，右端止于剑身；整体相对剑身上移 15） -->
+        <rect x="0" y="85" width="74" height="20" />
+        <rect x="0" y="85" width="20" height="170" />
+        <rect x="0" y="235" width="74" height="20" />
+        <!-- 右字根：纵长半椭圆 D 字碗（evenodd 挖孔得 20 宽环带，左缘止于剑身） -->
+        <path
+          fill-rule="evenodd"
+          d="M90 85 L104 85 C138.5 85 166.5 123.1 166.5 170 C166.5 216.9 138.5 255 104 255 L90 255 Z
+             M90 105 L104 105 C127.5 105 146.5 134.1 146.5 170 C146.5 205.9 127.5 235 104 235 L90 235 Z"
+        />
+        <!-- 箭镞（下端三角尖） -->
+        <path d="M62 280 L102 280 L82 322 Z" />
+      </g>
+    </svg>
+
+    <!-- 英文角标：仅右上角一个 Welcome；盒顶/字号由墨迹带推导（等文枢墨迹高），
+         行高固定 1（WELCOME_BOX_TOP_FACTOR 的偏移系数按 line-height:1 实测），勿改 -->
     <span
-      class="auth-page__corner auth-page__corner--left"
-      :style="{ left: `${edgeGap}px` }"
+      class="auth-page__corner"
+      :style="{
+        top: welcomeTop,
+        right: `${CORNER_RIGHT_GAP}px`,
+        fontSize: welcomeFontSize,
+        lineHeight: '1',
+      }"
       aria-hidden="true"
     >Welcome</span>
-    <span
-      ref="cornerProbeEl"
-      class="auth-page__corner auth-page__corner--probe"
-      :style="{ left: `${CORNER_ANCHOR_VW}vw` }"
-      aria-hidden="true"
-    >Log In</span>
-    <span
-      class="auth-page__corner auth-page__corner--right"
-      :style="{ right: `${edgeGap}px` }"
-      aria-hidden="true"
-    >{{ rightCornerText }}</span>
 
-    <!-- ============ 表单层：视口居中、重心略偏上，内部按 305 设计稿缩放 ============ -->
-    <div class="auth-page__content">
-      <div ref="formFrameEl" class="auth-page__frame">
+    <!-- ============ 表单层：视口居中，纵向锚点使文枢与 Welcome 同一水平线 ============ -->
+    <div class="auth-page__content" :style="{ '--form-anchor': formAnchor }">
+      <div
+        ref="formFrameEl"
+        class="auth-page__frame"
+        :style="{ '--frame-w': FRAME_W_CSS }"
+      >
         <div
           class="auth-page__canvas"
           :style="{
@@ -150,63 +211,54 @@ const { stageScale, formScale, formFrameEl, cornerProbeEl, edgeGap } = useAuthSt
     transform-origin: center;
   }
 
-  // 英文角标：直接相对视口定位（不随装饰舞台 cover 缩放被裁切）。
-  // 字号 56/1280=4.375vw；行高 135/1280=10.547vw；顶边距 11/800=1.375vh。
+  // 英文角标：直接相对视口定位（不随装饰舞台 cover 缩放被裁切），
+  // 以【右边界】定位；top/字号/行高/右边距由模板按 useAuthStage 常量内联注入，
+  // 保证与表单纵向锚点共用同一套数字，不出现两处硬编码漂移。
   &__corner {
     position: absolute;
-    top: 1.375vh;
     z-index: 1;
     font-family: $font-serif;
-    font-size: 4.375vw;
-    line-height: 10.547vw;
     color: $ink;
     white-space: nowrap;
     pointer-events: none;
+  }
 
-    // Welcome：左边界距视口左边的距离由 JS 写入 left
-    &--left {
-      transform: none;
-    }
-
-    // 右角标：以【右边界】定位，右边距由 JS 写入 right
-    &--right {
-      left: auto;
-      transform: none;
-    }
-
-    // 隐藏基准：与登录页右角标同款中心锚点与文案，仅用于量取边距。
-    // 用 visibility 而非 display 隐藏，以保留布局盒供 getBoundingClientRect 测量
-    &--probe {
-      transform: translateX(-50%);
-      visibility: hidden;
-    }
+  // 左上角品牌印记（内联 SVG）：left/top/height 由模板注入，
+  // 宽度按 viewBox 167:300 自适应，颜色走墨色变量
+  &__corner-mark {
+    position: absolute;
+    z-index: 1;
+    width: auto;
+    color: $ink;
+    pointer-events: none;
   }
 
   /* ------------------------------ 表单层 ------------------------------ */
 
-  // 表单定位层：水平居中；padding-top 42.3vh 作为表单内容中心基准，
-  // 配合子框 translateY(-50%)，使表单内容中心精确落在视口 42.3% 高度
+  // 表单定位层：水平居中；纵向锚点 --form-anchor 由脚本注入（默认回退 42.3vh），
+  // 配合子框 translateY(-50%)，锚点值即表单框中心的视口高度
   &__content {
     position: absolute;
     inset: 0;
     z-index: 2;
     display: flex;
     justify-content: center;
-    padding-top: 42.3vh;
+    padding-top: var(--form-anchor, 42.3vh);
   }
 
-  // 表单框：宽度 23.828vw，clamp 260~480，46vh 高度上限；
-  // 高度固定按宽高比 305:503 自适应，整体缩放比、框尺寸、字间距四页一致
+  // 表单框：宽度表达式来自 useAuthStage 的 FRAME_W_CSS（经 --frame-w 注入，
+  // 与顶栏墨迹带各 calc 同源单一出处）；高度固定按宽高比 305:503 自适应，
+  // 整体缩放比、框尺寸、字间距四页一致
   &__frame {
     position: relative;
-    width: min(clamp(260px, 23.828vw, 480px), 46vh);
+    width: var(--frame-w, min(clamp(260px, 23.828vw, 480px), 46vh));
     aspect-ratio: 305 / 503;
     flex: none;
     // 关键：父容器是 flex（交叉轴为纵向），默认 stretch 会用容器高覆盖
     // aspect-ratio 算出的高度，导致框体变形、内部画布下沉。改为 flex-start
     // 后高度严格等于 宽 × 503/305。
     align-self: flex-start;
-    // 框体中心对齐到 42.3vh 基准点
+    // 框体中心对齐到 --form-anchor 锚点（= Welcome 中心线 + 半画布高修正）
     transform: translateY(-50%);
   }
 
@@ -287,12 +339,18 @@ const { stageScale, formScale, formFrameEl, cornerProbeEl, edgeGap } = useAuthSt
   }
 }
 
-// 小屏（<768px）：隐藏纸张装饰与角标；表单宽度取视口 86%，并受 46vh 高度约束
+// 小屏（<768px）：隐藏纸张装饰与角标；无角标可对齐，表单回退 42.3vh 固定居中，
+// 宽度取视口 86% 并受 46vh 高度约束
 @media (max-width: 768px) {
   .auth-page {
     &__decor-stage,
-    &__corner {
+    &__corner,
+    &__corner-mark {
       display: none;
+    }
+
+    &__content {
+      padding-top: 42.3vh;
     }
 
     &__frame {

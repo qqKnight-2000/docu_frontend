@@ -1,6 +1,6 @@
 /**
  * @file stores/user.ts
- * @description 用户认证状态（Pinia setup 语法），对齐《前端联调文档》§一 / §0.5。
+ * @description 用户认证状态（Pinia setup 语法），对齐 API(2).md 认证与刷新约定。
  *
  *              职责：
  *              · 持有 TokenPair 与当前用户信息，持久化到 localStorage；
@@ -8,7 +8,7 @@
  *              · 向 http.ts 注入 AuthBridge，支撑请求自动携带 Token、
  *                401 自动刷新与失效清空；
  *              · 跨标签页同步：监听 storage 事件，避免多标签各持一份 Token
- *                互相覆盖（§0.5 要点 4）。
+ *                互相覆盖（刷新流程要点 4）。
  */
 import { computed, ref } from 'vue'
 import { defineStore } from 'pinia'
@@ -125,7 +125,7 @@ export const useUserStore = defineStore('user', () => {
     return res.data
   }
 
-  // 向 http 层注入 Token 读写能力，支撑自动携带与 401 刷新（§0.5）
+  // 向 http 层注入 Token 读写能力，支撑自动携带与 401 刷新
   bindAuth({
     getAccessToken: () => tokens.value?.accessToken ?? null,
     getRefreshToken: () => tokens.value?.refreshToken ?? null,
@@ -133,7 +133,7 @@ export const useUserStore = defineStore('user', () => {
     clearAuth,
   })
 
-  // 跨标签页同步：任一标签更新凭证，其余标签即时跟随（§0.5 要点 4）
+  // 跨标签页同步：任一标签更新凭证，其余标签即时跟随（刷新流程要点 4）
   window.addEventListener('storage', (event) => {
     if (event.key !== STORAGE_KEY) {
       return

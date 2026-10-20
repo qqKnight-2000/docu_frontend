@@ -8,8 +8,9 @@
  *              根节点固定为 305×215、绝对定位于画布顶部。
  *
  *              设计稿实测坐标（已换算为画布坐标，原点为品牌区左上角）：
- *                · 「文枢」字形  字号在设计稿 85pt 基础上经两轮缩小（先 −30% 再 −15%，
- *                  最终 50.6px），字距加大至 32px，500 字重，在原字形区内垂直、水平居中；
+ *                · 「文枢」字形  与右上角标 Welcome 同字号（BRAND_FONT_PX = 56 设计
+ *                  像素，渲染恒等于 4.375vw），字距 50px，500 字重；字形顶边与
+ *                  Welcome 顶边对齐（NAME_TOP = BRAND_TOP_Y，AuthLayout 锚点推导）；
  *                · 键盘标识      外接盒沿用原圆形标识的 104×104、top=110，水平居中，
  *                  键盘在盒内垂直居中，视觉重心与原圆环一致。
  *
@@ -29,20 +30,19 @@
  */
 
 import { onBeforeUnmount, onMounted, ref } from 'vue'
+import { BRAND_FONT_PX, BRAND_TOP_Y } from '@/composables/useAuthStage'
 
-/// 品牌名字号（设计稿 85pt 经两轮缩小：先缩 30% 得 59.5，再缩 15% 得 ≈50.6）
-const NAME_FONT_SIZE = 50.6
-/// 品牌名字间距（经两轮加大：8 → 16 → 32）
-const NAME_LETTER_SPACING = 32
-/// 品牌名距画布顶部距离：字号缩小后在原 85px 字形区（y≈21~97，高 76）内
-/// 垂直居中放置，保持与下方圆环的相对间距不因字号变化而改变：
-/// 21 + (76 − 50.6) / 2 ≈ 34
-const NAME_TOP = 34
+/// 品牌名字号：与右上角标 Welcome 同字号（56 设计像素，渲染恒等于 4.375vw）
+const NAME_FONT_SIZE = BRAND_FONT_PX
+/// 品牌名字间距（逐轮加大：8 → 16 → 32 → 50）
+const NAME_LETTER_SPACING = 50
+/// 品牌名字形顶边的画布纵坐标：与 Welcome 字形顶边对齐（AuthLayout 锚点按此推导）
+const NAME_TOP = BRAND_TOP_Y
 
 /// 键盘标识外接盒尺寸（沿用原圆形标识的 104×104，保持品牌区布局不变）
-const MARK_SIZE = 104
+const MARK_SIZE = 160
 /// 键盘标识距画布顶部距离（沿用原圆形标识的 top=110）
-const MARK_TOP = 110
+const MARK_TOP = 80
 
 /* ---------------------------- 键盘线稿几何 ---------------------------- */
 
@@ -55,13 +55,13 @@ interface KeyDef {
 }
 
 /// 键位区总宽（机身内框左右各留 7 的边距）
-const KEYS_TOTAL_W = 114
+const KEYS_TOTAL_W = 115
 /// 键位区起始坐标：上边距缩减 15%（13 → 11.05），起点 y = 2 + 11.05 = 13.05
 const KEYS_X0 = 7
 const KEYS_Y0 = 13.05
 /// 键高与横纵键距（行距 3.6 + 键高 5.475：键位区跨距扩为 32.7，
 /// 键盘外框不变、上下边距同为 11.05，行与行之间进一步舒展）
-const KEY_H = 5.475
+const KEY_H = 6
 const KEY_GAP_X = 1.8
 const KEY_GAP_Y = 3.6
 

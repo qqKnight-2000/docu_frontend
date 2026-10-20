@@ -32,7 +32,7 @@ const router = createRouter({
       meta: { requiresAuth: false },
     },
     {
-      // 修改密码页（P4）：需登录；成功后服务端撤销全部会话，页面自行清 Token 跳登录
+      // 修改密码页：需登录；成功后服务端撤销全部会话，页面自行清 Token 跳登录
       path: '/change-password',
       name: 'ChangePassword',
       component: () => import('@/views/ChangePasswordView.vue'),

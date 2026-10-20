@@ -16,11 +16,11 @@
  *                  【正下方间隙内】（12px 墨色宋体，不用红色）；
  *                · 发送验证码失败（CaptchaInput emit('error')）落在手机号框下方。
  *
- *              行为（依文档 P3）：
+ *              行为：
  *                · 各字段受控；提交时本地校验：
  *                  - 手机号符合 /^1[3-9]\d{9}$/；
  *                  - 验证码为 4-8 位数字；
- *                  - 新密码非空且 8-64 位（P3 未另列长度，沿用 P2 注册密码规则）；
+ *                  - 新密码非空且 8-64 位（未另列长度规则，沿用注册密码规则）；
  *                · 发送验证码 → 调用父级注入的 requestCode(phone)（→ POST /user/reset-password/code）；
  *                · 重设提交 → emit('submit', { phone, code, newPassword })，由父级接入 api；
  *                · loading=true 时禁用全部输入与按钮。

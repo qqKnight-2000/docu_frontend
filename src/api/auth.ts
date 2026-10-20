@@ -1,15 +1,14 @@
 /**
  * @file auth.ts
- * @description 认证模块接口（对齐《前端联调文档》§一 认证模块）。
+ * @description 认证模块接口（对齐 API(2).md §2 认证模块）。
  *
  *              · 密码登录：POST /user/login，请求体字段为 **account**（非 username），
- *                账号可填用户名或手机号，后端按手机号正则自动识别（P1）；
+ *                账号可填用户名或手机号，后端按手机号正则自动识别；
  *              · 发送验证码：POST /user/login/code，响应 data 为**脱敏手机号**，
- *                不返回验证码（P1）；
+ *                不返回验证码；
  *              · 验证码登录：POST /user/login/by-code（非 /user/login/phone）；
- *              · 刷新令牌：POST /user/refresh，字段为 **refreshToken**（§0.5，
- *                此前"保留 refreshToekn 拼写"的假设已被文档证伪，予以纠正）；
- *              · 注册：POST /user/register（P2），响应 data 为 **UserInfo**，
+ *              · 刷新令牌：POST /user/refresh，字段拼写为 **refreshToken**；
+ *              · 注册：POST /user/register，响应 data 为 **UserInfo**，
  *                **不返回 Token**，因此注册成功不等于登录，需引导用户回登录页；
  *              · 退出登录：POST /user/logout（当前设备）、POST /user/logout-all
  *                （全部其他设备，data 为实际撤销的会话数）。
@@ -17,7 +16,7 @@
 import http, { type ApiResponse } from './http'
 import type { TokenPair, UserInfo } from '@/types/user'
 
-/** 密码登录请求体（P1：account 为用户名或手机号） */
+/** 密码登录请求体（account 为用户名或手机号） */
 export interface PasswordLoginParams {
   /** 用户名或手机号；填手机号时后端按 ^1[3-9]\d{9}$ 识别 */
   account: string
@@ -61,7 +60,7 @@ export function loginByCode(params: {
   return http.post('/user/login/by-code', params, { _skipAuthRefresh: true })
 }
 
-/** 密码注册请求体（P2：手机号选填） */
+/** 密码注册请求体（手机号选填） */
 export interface RegisterParams {
   /** 用户名：4-20 位，仅字母、数字、下划线 */
   username: string
@@ -84,7 +83,7 @@ export function registerByPassword(
   return http.post('/user/register', params, { _skipAuthRefresh: true })
 }
 
-/** 验证码注册请求体（P2：手机号必填） */
+/** 验证码注册请求体（手机号必填） */
 export interface RegisterByCodeParams {
   /** 用户名：4-20 位，仅字母、数字、下划线 */
   username: string
@@ -119,13 +118,13 @@ export function registerByCode(
   return http.post('/user/register/by-code', params, { _skipAuthRefresh: true })
 }
 
-/** 找回密码：重设密码请求体（P3） */
+/** 找回密码：重设密码请求体 */
 export interface ResetPasswordParams {
   /** 手机号（必填）：须匹配 ^1[3-9]\d{9}$，且为已注册、未禁用的账号 */
   phone: string
   /** 短信验证码 */
   code: string
-  /** 新密码：文档 P3 未另列长度规则，沿用 P2 注册密码的 8-64 位校验 */
+  /** 新密码：未另列长度规则，沿用注册密码的 8-64 位校验 */
   newPassword: string
 }
 
@@ -153,14 +152,14 @@ export function resetPassword(params: ResetPasswordParams): Promise<ApiResponse<
 /**
  * 刷新访问令牌
  * POST /user/refresh
- * @description 字段为 refreshToken（§0.5）。刷新返回新的双 Token，旧 Refresh 立即失效。
+ * @description 字段拼写为 refreshToken。刷新返回新的双 Token，旧 Refresh 立即失效。
  *              正常情况下该请求由 http.ts 的 401 拦截器内部调度，业务代码无需直接调用。
  */
 export function refreshToken(refreshToken: string): Promise<ApiResponse<TokenPair>> {
   return http.post('/user/refresh', { refreshToken }, { _skipAuthRefresh: true })
 }
 
-/** 修改密码请求体（P4，需登录） */
+/** 修改密码请求体（需登录） */
 export interface ChangePasswordParams {
   /** 旧密码（必填） */
   oldPassword: string
@@ -170,7 +169,7 @@ export interface ChangePasswordParams {
 
 /**
  * 修改密码
- * POST /user/change-password（P4，需登录）
+ * POST /user/change-password（需登录）
  * @description oldPassword 必填；newPassword 必填且 8-64 位。
  *              **成功后服务端撤销包括当前设备在内的全部会话**，前端收到成功响应后
  *              必须清空本地 Token 并跳转登录页。错误：400 原密码不正确；401 未登录。

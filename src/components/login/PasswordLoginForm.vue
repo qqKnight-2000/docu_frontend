@@ -10,7 +10,7 @@
  *                · 密码框复用 PasswordInput（含显隐切换）；
  *                · 提交复用 LoginButton（墨底纸字）。
  *
- *              错误提示（Step 9）：
+ *              错误提示（内联）：
  *                · 提交校验失败时，在对应字段【正下方间隙内】显示 12px 墨色宋体
  *                  内联文案（不弹窗、不使用红色等通用 UI 色，保持墨线语言）；
  *                · 提示绝对定位，不挤压三框布局；用户在该字段重新输入后自动清除。
@@ -21,7 +21,7 @@
  *                  - 密码非空（复用 validate.ts 的 isPasswordValid；长度规则属注册页，不在此处施加）；
  *                  校验不通过时不 emit('submit')。
  *                · 本组件不直接调用接口，提交时 emit('submit', { account, password })，
- *                  由父级 LoginView 接入 store（Step 10）。
+ *                  由父级 LoginView 接入 store。
  *                · loading=true 时禁用账号框、密码框、按钮，防止提交中修改。
  *
  *              定位：根节点为 305 宽的纵向流式块，顶部由父级画布定位，

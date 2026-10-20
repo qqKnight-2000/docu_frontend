@@ -101,7 +101,7 @@ async function requestLoginCode(phone: string): Promise<null> {
 </script>
 
 <template>
-  <AuthLayout right-corner-text="Log In">
+  <AuthLayout>
     <!-- 登录方式切换：密码登录 / 验证码登录 -->
     <LoginTabs v-model="loginMode" />
 

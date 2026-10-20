@@ -11,10 +11,10 @@ export interface UserInfo {
   phone: string | null
   role: string
   status: string
-  // DECIMAL(20,6)：JSON 里可能是数字或字符串，按字符串处理再格式化（联调文档 §6.4）
+  // 后端 DECIMAL 序列化可能是数字或字符串（宽容写法），按字符串处理再格式化
   balance: number | string
   createTime: string
-  // 尚未登录过时为 null（联调文档 P2 注册响应示例）
+  // 尚未登录过时为 null（注册响应 data 中该字段可为 null）
   lastLoginTime: string | null
 }
 

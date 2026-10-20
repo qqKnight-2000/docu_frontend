@@ -10,7 +10,7 @@
  *                · 验证码框复用 CaptchaInput（含 60s 倒计时发送按钮）；
  *                · 提交复用 LoginButton（墨底纸字）。
  *
- *              错误提示（Step 9）：
+ *              错误提示（内联）：
  *                · 手机号格式错误、验证码非 4-8 位、发送验证码失败三种场景，
  *                  在对应字段【正下方间隙内】显示 12px 墨色宋体内联文案，
  *                  不弹窗、不使用红色等通用 UI 色；
@@ -24,7 +24,7 @@
  *                · 点击「获取验证码」的手机号校验由 CaptchaInput 内部完成，
  *                  失败时 emit('error')，本组件捕获后显示在手机号框下方。
  *                · 本组件不直接调用接口：
- *                  - 发送验证码 → 调用父级注入的 requestCode(phone)（Step 10 接 /user/login/code）；
+ *                  - 发送验证码 → 调用父级注入的 requestCode(phone)；
  *                  - 登录提交 → emit('submit', { phone, code })，由父级接入 store。
  *                · loading=true 时禁用手机号框、验证码框、按钮，防止提交中修改。
  *
